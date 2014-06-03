@@ -1,4 +1,4 @@
 spamcop
 =======
 
-Spam filter based on Bayesian and
+Spam filter based on Naive Bayes Classifier and a Neural Network Classifier
