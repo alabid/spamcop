@@ -127,7 +127,6 @@ class NaiveBayesClassifier:
                 if self.classify(line) == is_spam:
                     right += 1
                 total += 1
-
         print "Testing model on the following directories: "
         for dirname in glob.glob(fname):
             print dirname
@@ -226,8 +225,8 @@ def main():
     if len(sys.argv) < 3:
         print "python [Classifier File Name] [training dirs] [testing dir]"
         exit()
-    
     naive = NaiveBayesClassifier(sys.argv[1])
+    naive.force = True
     naive.trainClassifier()
     acc = naive.testClassifier(sys.argv[2])
     print "Accuracy on test set: %.2f %%" % (acc * 100)
