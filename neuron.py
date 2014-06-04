@@ -1,32 +1,37 @@
 # William Schifeling and Daniel Alabi
+import re
+import nltk
+import sys
+import glob
+
 
 '''
 neuron class: contains weights, descendents (children), parents
 (what it descended from), and whether or not it is an output neuron.
 '''
-class Neuron():
+class Neuron:
 
     def __init__(self):
         self.weights = []
         self.children = []
         self.parents = []
-        self.isOutput = False
-        self.isInput = False
+        self.is_output = False
+        self.is_input = False
 
-    def setWeight(self, weightList):
+    def set_weight(self, weightList):
         self.weights = weightList
 
-    def setChildren(self, children):
+    def set_children(self, children):
         self.children = children
 
-    def setParents(self, parents):
+    def set_parents(self, parents):
         self.parents = parents
 
-    def setOutput(self, boolean):
-        self.isOutput = boolean
+    def set_output(self, boolean):
+        self.is_output = boolean
 
-    def setInput(self, boolean):
-        self.isInput = boolean
+    def set_input(self, boolean):
+        self.is_input = boolean
     
 # 1 if sum wi*ai >= 0, else 0
 def hw(weights, activations):
@@ -39,9 +44,9 @@ def hw(weights, activations):
         return 0
 
 # wi = wi + alpha(y-hw(w, a))*ai
-def updateWeight(weightIndex, alpha, weights, activations, prediction):
-    newWeight = weights[weightIndex] + (alpha*(prediction - hw(weights, activations))*activations[weightIndex])
-    return newWeight
+def update_weight(weight_index, alpha, weights, activations, prediction):
+    new_weight = weights[weight_index] + (alpha*(prediction - hw(weights, activations))*activations[weight_index])
+    return new_weight
 
 def feedForwardNetwork(examples, alpha):
     pass
@@ -72,7 +77,7 @@ def createNeuralNetwork(depth, width):
             subnetwork.append(neuron)
         network.append(subnetwork)
     neuron = Neuron()
-    neuron.setOutput(True)
+    neuron.set_output(True)
     network.append([neuron])
 
     for neuron in network[0]:
@@ -87,9 +92,123 @@ def createNeuralNetwork(depth, width):
     
     return network
     
+
+class NeuralNetwork:
+    def __init__(self, dimensions, training_dir):
+        self.dimensions = dimensions
+        self.training_dir = training_dir
+        self.examples = self.create_examples()
+        self.network = self.create_network()
+        print self.examples
+        
+
+    def create_network(self):
+        network = []
+        for number in self.dimensions:
+            sub_network = []
+            for i in range(len(number)):
+                neuron = Neuron()
+                sub_network.append(neuron)
+            network.append(subnetwork)
+                
+        neuron = Neuron()
+        neuron.set_output(True)
+        network.append([neuron])
+
+        for neuron in network[0]:
+            neuron.setInput(True)
+    
+        for i in range(len(network)):
+            for neuron in network[i]:
+                if i > 0:
+                    neuron.setParents(network[i-1])
+                if i < len(network)-1:
+                    neuron.setChildren(network[i+1])
+    
+        self.network = network
+
+    def get_all_lines(self, file_name):
+        f = open(file_name)
+        # read subject line without 'Subject' line
+        subject_line = f.readline()[8:]
+        all_lines = [subject_line] \
+                    + [re.sub(r"[,.]",
+                              r"",
+                              line.lower().strip()) for line in f]
+        f.close()
+        return all_lines
+
+    def create_examples(self):
+        example_list = []
+        for file_name in glob.glob("/".join([self.training_dir, "*.txt"])):
+            print file_name
+            is_spam = 0 if file_name.find("spmsg") == -1 else 1
+            all_lines = self.get_all_lines(file_name)  
+            features = self.get_features(all_lines)
+            example_list.append((features, is_spam))
+        return example_list
+    
+    def get_features(self, all_lines):
+        func_features = [self.get_avg_word_length, 
+                         self.num_spec_chars,
+                         self.num_urls]
+        # for a_0
+        features = [1]
+        for func in func_features:
+            features.append(func(all_lines))
+
+        return tuple(features)
+    '''
+    other ideas:
+    num_numbers, #?
+    num_$s,
+    num_email_addresses
+    '''
+    def get_avg_word_length(self, all_lines):
+        num_words = 0.0
+        length_sum = 0.0
+        for line in all_lines:
+            no_punc = re.sub(r"\W", r" ", line)
+            for word in nltk.word_tokenize(no_punc):
+                num_words += 1
+                length_sum += len(word)
+        return length_sum/num_words
+
+
+    def num_spec_chars(self, all_lines):
+        num_chars = 0.0
+        for line in all_lines:
+            spec_chars = re.sub(r"\w", r" ", line)
+            for char in nltk.word_tokenize(spec_chars):
+                num_chars += 1
+        return num_chars
+
+    def num_urls(self, all_lines):
+        num_urls = 0.0
+        for line in all_lines:
+            for word in nltk.word_tokenize(line):
+                if (word == "http") or (word == "www"): #.com
+                    num_urls += 1
+        return num_urls
+            
+        
+                
+            
+    
     
 def main():
+    if len(sys.argv) < 3:
+        print "python [Classifier File Name] [training dirs] [testing dir]"
+        exit()
+
+    training_dir = sys.argv[1]
+    testing_dir = sys.argv[2]
+    
+    network = NeuralNetwork([4, 2, 2], training_dir)
+'''    acc = network.test_classifier()
+    print "Accuracy on test set: %.2f %%" % (acc * 100)
+    
     network = createNeuralNetwork(3, 3)
     print network
-
+'''
 main()
