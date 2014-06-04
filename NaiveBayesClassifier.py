@@ -34,71 +34,71 @@ class NaiveBayesClassifier:
         
         # counts of feature/class combinations
         # stores (feature) => [x, y] where
-        # x -> number of times feature appears in negative class
-        # y -> number of times feature appears in positive class
+        # x -> number of times feature appears in not spam class
+        # y -> number of times feature appears in spam class
         self.feat_mess_counts = {}
 
-    def setThresholds(self, neg=1.0, pos=1.0):
+    def set_thresholds(self, neg=1.0, pos=1.0):
         self.thresholds = [neg, pos]
 
-    def probMessageClass(self, text, c):
+    def prob_message_class(self, text, c):
         '''
         Returns the (log) probability of a message, given
         a particular class
         P(message | class)
         '''
-        features = self.getFeatures(text)
+        features = self.get_features(text)
         p = 0
         for f in features:
-            p += math.log(self.weightedProb(f, c))
+            p += math.log(self.weighted_prob(f, c))
         return p
 
-    def probClassMessage(self, text, c):
+    def prob_class_message(self, text, c):
         '''
         Returns the (log) probability of a class, given 
         a particular message
         P(class | message) = P(message | class) X P(class) / P(message)
         But P(message) is constant for all classes; so forget
         '''
-        return self.probMessageClass(text, c) + math.log(self.probC(c))
+        return self.prob_message_class(text, c) + math.log(self.prob_c(c))
 
     def classify(self, text):
         '''
-        Returns 0 (negative) if
+        Returns 0 (not spam) if
            P(class=0 | message) > P(class=1 | message) * thresholds[0]
-        Returns 1 (positive) if
+        Returns 1 (spam) if
            P(class=1 | message) > P(class=0 | message) * thresholds[1]
         Else return -1 (neutral)
         '''
-        p0 = self.probClassMessage(text, 0)
-        p1 = self.probClassMessage(text, 1)
-        
+        p0 = self.prob_class_message(text, 0)
+        p1 = self.prob_class_message(text, 1)
         if p0 > p1 + math.log(self.thresholds[0]):
             return 0
         elif p1 > p0 + math.log(self.thresholds[1]):
             return 1
         else:
+            print "don't know what to say!"
             return -1
 
-    def incFC(self, f, c):
+    def inc_fc(self, f, c):
         self.feat_mess_counts.setdefault(f, [0, 0])
         self.feat_mess_counts[f][c] += 1
 
-    def incC(self, c):
+    def inc_c(self, c):
         self.mess_counts[c] += 1
 
-    def getFC(self, f, c):
+    def get_fc(self, f, c):
         if f in self.feat_mess_counts:
             return float(self.feat_mess_counts[f][c])
         return 0.0
 
-    def getC(self, c):
+    def get_c(self, c):
         return float(self.mess_counts[c])
 
-    def getTotal(self):
+    def get_total(self):
         return sum(self.mess_counts)
 
-    def getFeatures(self, item):
+    def get_features(self, item):
         '''
         Each feature has weight 1.
         That is, even if the word 'obama' appears > 10 times
@@ -111,12 +111,12 @@ class NaiveBayesClassifier:
         '''
         Trains the classifier using item (a line) on the class 'c'
         '''
-        features = self.getFeatures(item)
+        features = self.get_features(item)
         for f in features:
-            self.incFC(f, c)
-        self.incC(c)
+            self.inc_fc(f, c)
+        self.inc_c(c)
 
-    def testClassifier(self, fname):
+    def test_classifier(self, fname):
         total = 0
         right = 0
         for file_name in glob.glob("/".join([fname, "*.txt"])):
@@ -143,7 +143,7 @@ class NaiveBayesClassifier:
         f.close()
         return all_lines
 
-    def trainClassifier(self):
+    def train_classifier(self):
         '''
         Trains the classifier based on messages in the directory.
         Stores the resulting data structure in a pickle file.
@@ -173,45 +173,45 @@ class NaiveBayesClassifier:
             print dirname
         print "Model stored in '%s'" % self.modelfname
 
-    def probFC(self, f, c):
+    def prob_fc(self, f, c):
         '''
         Return the probability of a feature being in a particular class
         '''
-        if self.getC(c) == 0:
+        if self.get_c(c) == 0:
             return 0
-        return self.getFC(f, c) / self.getC(c)
+        return self.get_fc(f, c) / self.get_c(c)
 
-    def probC(self, c):
+    def prob_c(self, c):
         '''
         Return the probability Prob(Class)
         '''
-        return self.getC(c) / self.getTotal()
+        return self.get_c(c) / self.get_total()
 
-    def setWeight(self, w):
+    def set_weight(self, w):
         '''
         Set weight to use in classifier
         '''
         self.weight = w
 
-    def weightedProb(self, f, c, ap=0.5):
+    def weighted_prob(self, f, c, ap=0.5):
         '''
         Method of smoothing:
         Start with an assumed probability (ap) for each word in each class
-        Then, return weighted probability of real probability (probFC)
+        Then, return weighted probability of real probability (prob_fc)
         and assumed probability
         weight of 1.0 means ap is weighted as much as a word
         Bayesian in nature: 
-        For example, the word 'dude' might not be in the corpus initially.
+        For example, the word 'dude' might not be in the training set initially.
         so assuming weight of 1.0, then
         P('dude' | class=0) = 0.5 and P('dude' | class=1) = 0.5
-        then when we find one 'dude' that's positive,
+        then when we find one 'dude' that's spam,
         P('dude' | class=0) = 0.25 and P('dude' | class=1) = 0.75
         '''
         # calculate current probability
-        real = self.probFC(f, c)
+        real = self.prob_fc(f, c)
 
         # count number of times this feature has appeared in all categories
-        totals = sum([self.getFC(f, c) for c in [0, 1]])
+        totals = sum([self.get_fc(f, c) for c in [0, 1]])
         
         # calculate weighted average
         return ((self.weight * ap) + (totals * real))/(self.weight + totals)
@@ -227,8 +227,8 @@ def main():
         exit()
     naive = NaiveBayesClassifier(sys.argv[1])
     naive.force = True
-    naive.trainClassifier()
-    acc = naive.testClassifier(sys.argv[2])
+    naive.train_classifier()
+    acc = naive.test_classifier(sys.argv[2])
     print "Accuracy on test set: %.2f %%" % (acc * 100)
 
 if __name__ == "__main__":
