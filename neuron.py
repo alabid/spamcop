@@ -18,7 +18,7 @@ class Neuron:
         self.is_output = False
         self.is_input = False
 
-    def set_weight(self, weightList):
+    def set_weights(self, weightList):
         self.weights = weightList
 
     def set_children(self, children):
@@ -61,6 +61,8 @@ class NeuralNetwork:
         self.examples = self.create_examples()
         self.network = self.create_network()
         print self.examples
+        print self.network
+        self.back_prop_learning()
         
 
     def create_network(self):
@@ -124,12 +126,26 @@ class NeuralNetwork:
             features.append(func(all_lines))
 
         return tuple(features)
+   
+
+
+    def initialize_weights(self, weight, num_weights):
+        for sub_network in self.network:
+            for neuron in sub_network:
+                neuron.set_weights([weight for i in range(num_weights)])
+        print self.network[0][0].weights
+        
+                
+        
     '''
-    other ideas:
-    num_numbers, #?
-    num_$s,
-    num_email_addresses
+    returns a network.
     '''
+    def back_prop_learning(self):
+        alpha = 1.0
+        num_weight_is = len(self.examples[0][0])
+        self.initialize_weights(0.0, num_weight_is)
+        
+
     def get_avg_word_length(self, all_lines):
         num_words = 0.0
         length_sum = 0.0
