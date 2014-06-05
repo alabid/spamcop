@@ -48,49 +48,10 @@ def update_weight(weight_index, alpha, weights, activations, prediction):
     new_weight = weights[weight_index] + (alpha*(prediction - hw(weights, activations))*activations[weight_index])
     return new_weight
 
-def feedForwardNetwork(examples, alpha):
-    pass
-    '''
-    network = createNeuralNetwork(1, 1)
-    inputNode = network[0][0]
-    inputNode.setWeights([0 for item in examples[0]])
-    iters, changes = 0, 1
-    while (iters < 100) or (changes = 0):
-        changes = 0
-        for example in examples:
-            for weight in inputNode.weights:
-     '''           
 
 
 
-'''
-creates a neural network with depth equal to "depth" + 1, and width equal
-to the "width". Depth = depth + 1 because we have one final output node for now
-so we don't have to deal with a vector output.
-'''
-def createNeuralNetwork(depth, width):
-    network = []
-    for i in range(depth):
-        subnetwork = []
-        for j in range(width):
-            neuron = Neuron()
-            subnetwork.append(neuron)
-        network.append(subnetwork)
-    neuron = Neuron()
-    neuron.set_output(True)
-    network.append([neuron])
 
-    for neuron in network[0]:
-        neuron.setInput(True)
-    
-    for i in range(len(network)):
-        for neuron in network[i]:
-            if i > 0:
-                neuron.setParents(network[i-1])
-            if i < depth:
-                neuron.setChildren(network[i+1])
-    
-    return network
     
 
 class NeuralNetwork:
@@ -106,24 +67,24 @@ class NeuralNetwork:
         network = []
         for number in self.dimensions:
             sub_network = []
-            for i in range(len(number)):
+            for i in range(number):
                 neuron = Neuron()
                 sub_network.append(neuron)
-            network.append(subnetwork)
+            network.append(sub_network)
                 
         neuron = Neuron()
         neuron.set_output(True)
         network.append([neuron])
 
         for neuron in network[0]:
-            neuron.setInput(True)
+            neuron.set_input(True)
     
         for i in range(len(network)):
             for neuron in network[i]:
                 if i > 0:
-                    neuron.setParents(network[i-1])
+                    neuron.set_parents(network[i-1])
                 if i < len(network)-1:
-                    neuron.setChildren(network[i+1])
+                    neuron.set_children(network[i+1])
     
         self.network = network
 
@@ -151,7 +112,10 @@ class NeuralNetwork:
     def get_features(self, all_lines):
         func_features = [self.get_avg_word_length, 
                          self.num_spec_chars,
-                         self.num_urls]
+                         self.num_urls,
+                         self.diversity_of_chars,
+                         self.num_nums,
+                         self.num_dollars]
         # for a_0
         features = [1]
         for func in func_features:
@@ -192,8 +156,34 @@ class NeuralNetwork:
         return num_urls
             
         
-                
+    def diversity_of_chars(self, all_lines):
+        chars = set()
+        num_chars = 0.0
+        for line in all_lines:
+            for word in nltk.word_tokenize(line):
+                for char in word:
+                    chars.add(ord(char))
+                    num_chars +=1
+        return len(chars)/num_chars
+
+    def num_nums(self, all_lines):
+        num_nums = 0.0
+        for line in all_lines:
+            num_list = re.findall("[0-9]", line)
+            num_nums += len(num_list)
+        return num_nums
+
+    def num_dollars(self, all_lines):
+        num_dollars = 0.0
+        for line in all_lines:
+            dollar_list = re.findall("$", line)
+            num_dollars += len(dollar_list)
+        return num_dollars
+
+    def num_email_addrs(self, all_lines):
             
+
+    
     
     
 def main():
