@@ -115,7 +115,9 @@ class NeuralNetwork:
                          self.num_urls,
                          self.diversity_of_chars,
                          self.num_nums,
-                         self.num_dollars]
+                         self.num_dollars,
+                         self.num_email_addrs,
+                         self.num_space_chars]
         # for a_0
         features = [1]
         for func in func_features:
@@ -181,6 +183,18 @@ class NeuralNetwork:
         return num_dollars
 
     def num_email_addrs(self, all_lines):
+        num_emails = 0.0
+        for line in all_lines:
+            email_list = re.findall("@", line)
+            num_emails += len(email_list)
+        return num_emails
+
+    def num_space_chars(self, all_lines):
+        num_spaces = 0.0
+        for line in all_lines:
+            space_list = re.findall("[\t, \s, \n]", line)
+            num_spaces += len(space_list)
+        return num_spaces
             
 
     
