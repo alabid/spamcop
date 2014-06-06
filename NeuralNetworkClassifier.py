@@ -3,6 +3,7 @@ import re
 import nltk
 import sys
 import glob
+import math
 
 
 '''
@@ -73,7 +74,7 @@ class NeuralNetwork:
                     neuron.set_parents(network[i-1])                    
                 if i < len(network)-1:
                     neuron.set_children(network[i+1])
-                    neuron.set_weights([-0.000000000001] * len(network[i+1]))
+                    neuron.set_weights([0.000001] * len(network[i+1]))
     
         return network
 
@@ -122,26 +123,34 @@ class NeuralNetwork:
         alpha = 0.2
         delta = [[None] * len(self.network[l]) for l in range(len(self.network))]
         
-        improv = 1000
-        last_delta = 2000000000000000
-        while improv > 0:
-            error_count = 0
+        weight_change = 1
+                    
+        while math.fabs(weight_change) > 0:
+            weight_change = 0
             for example in self.examples:
                 input_vec = example[0]            
                 res = example[1]
+
+                # input nodes
                 a = [[None] * len(self.network[l]) for l in range(len(self.network))]
                 for j in range(len(input_vec)):
-                    a[0][j] = input_vec[j] 
+                    a[0][j] = input_vec[j]
+                
+
+                # hidden nodes
                 for l in range(1, len(self.dimensions)): 
                     prev_layer = self.network[l-1]
                     curr_layer = self.network[l]                
 
                     for j in range(len(curr_layer)):
                         hyp = 0
-                        for prev_layer_node in prev_layer:
-                            hyp += prev_layer_node.weights[j] * a[l-1][j]
+                        for i in range(len(prev_layer)):
+                            hyp += prev_layer[i].weights[j] * a[l-1][i] #should this be a[l-1][j] or a[l-1][indexofprev_layer_node]
+                            
                         a[l][j] = 1 if hyp >= 0 else 0
-                print a
+            
+
+                # propagate backwards...
                 output_node = self.network[-1][0]
                 delta[-1][0] = res - a[-1][0]
 
@@ -155,12 +164,11 @@ class NeuralNetwork:
                     for j in range(len(self.network[i])):
                         node = self.network[i][j]
                         for k in range(len(node.weights)):
+                            weight_change += math.fabs(alpha * a[i][k] * delta[i][j])
                             node.weights[k] += alpha * a[i][k] * delta[i][j] 
 
-            new_delta =  sum([sum(delta[i]) for i in range(len(delta))])
-            improv = last_delta - new_delta
-            last_delta = new_delta  
-            print improv
+            print "a\n", a, "weights:\n", self.network[0][4].weights
+            print weight_change, "Weight change"
 
     def get_avg_word_length(self, all_lines):
         num_words = 0.0
