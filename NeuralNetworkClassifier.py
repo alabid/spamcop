@@ -92,7 +92,6 @@ class NeuralNetwork:
     def create_examples(self):
         example_list = []
         for file_name in glob.glob("/".join([self.training_dir, "*.txt"])):
-            print file_name
             is_spam = 0 if file_name.find("spmsg") == -1 else 1
             all_lines = self.get_all_lines(file_name)  
             features = self.get_features(all_lines)
@@ -116,6 +115,28 @@ class NeuralNetwork:
         return tuple(features)        
                 
         
+
+    def forward_pass(self, input_vec):
+        # input nodes
+        a = [[None] * len(self.network[l]) for l in range(len(self.network))]
+        for j in range(len(input_vec)):
+            a[0][j] = input_vec[j]
+                
+
+        # hidden nodes
+        for l in range(1, len(self.dimensions)): 
+            prev_layer = self.network[l-1]
+            curr_layer = self.network[l]                
+            
+            for j in range(len(curr_layer)):
+                hyp = 0
+                for i in range(len(prev_layer)):
+                    hyp += prev_layer[i].weights[j] * a[l-1][i]                             
+                a[l][j] = 1 if hyp >= 0 else 0
+        
+        return a
+
+
     '''
     returns a network.
     '''
@@ -131,25 +152,9 @@ class NeuralNetwork:
                 input_vec = example[0]            
                 res = example[1]
 
-                # input nodes
-                a = [[None] * len(self.network[l]) for l in range(len(self.network))]
-                for j in range(len(input_vec)):
-                    a[0][j] = input_vec[j]
+                # forward pass
+                a = self.forward_pass(input_vec)
                 
-
-                # hidden nodes
-                for l in range(1, len(self.dimensions)): 
-                    prev_layer = self.network[l-1]
-                    curr_layer = self.network[l]                
-
-                    for j in range(len(curr_layer)):
-                        hyp = 0
-                        for i in range(len(prev_layer)):
-                            hyp += prev_layer[i].weights[j] * a[l-1][i] #should this be a[l-1][j] or a[l-1][indexofprev_layer_node]
-                            
-                        a[l][j] = 1 if hyp >= 0 else 0
-            
-
                 # propagate backwards...
                 output_node = self.network[-1][0]
                 delta[-1][0] = res - a[-1][0]
@@ -245,30 +250,13 @@ class NeuralNetwork:
             num_spaces += len(space_list)
         return num_spaces
 
-    def predict(self, features, node, parent_index):
-        if node.is_input == True:
-            node_index = self.network[0].index(node)
-            return node.weights[node_index] * features[node_index]
-        elif node.is_output == True:
-            summation = 0
-            for neuron in node.children:
-                node_index = (parent_index -1, self.network[parent_index -1].index(node)) 
-                summation += self.predict(features, neuron, node_index)
-            if summation >= 0:
-                return 0
-            else:
-                return 1
-
-        else:
-            summation = 0
-            for neuron in node.children:
-                node_index = (parent_index -1, self.network[parent_index -1].index(node))
-                summation += self.predict(features, neuron, node_index)
-            return summation * node.weights[parent_index[1]]
+    def predict(self, features):
+        forwards = self.forward_pass(features)
+        return forwards[-1][0] 
 
     def classify(self, text):
         features = self.get_features(text)
-        output = self.predict(features, self.network[-1][0], None)
+        output = self.predict(features)
         return output
 
     def test_classifier(self, fname):
