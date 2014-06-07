@@ -165,8 +165,6 @@ class NeuralNetwork:
             times += 1
                             
     def predict(self, features):
-        print
-        print features
         forwards = self.forward_pass(features)
         return forwards[-1][0] 
 
@@ -206,13 +204,18 @@ class NeuralNetwork:
             
         return right / total
 
-def create_examples(from_dir):
+def create_examples(training_file):
     example_list = []
-    for file_name in glob.glob("/".join([from_dir, "*.txt"])):
-        is_spam = 0 if file_name.find("spmsg") == -1 else 1
-        all_lines = get_all_lines(file_name)  
-        features = get_features(all_lines)
-        example_list.append((features, is_spam))
+    # for file_name in glob.glob("/".join([from_dir, "*.txt"])):
+    with open(training_file) as f:
+        for line in f:
+            row = line.split(",")
+            features = tuple([1]+[float(each) for each in row[:-1]])
+            is_spam = int(row[-1])
+            # is_spam = 0 if file_name.find("spmsg") == -1 else 1
+            # all_lines = get_all_lines(file_name)  
+            # features = get_features(all_lines)
+            example_list.append((features, is_spam))
     return example_list
 
 def get_all_lines(file_name):
@@ -316,13 +319,15 @@ def num_email_addrs(all_lines):
 
     
 def main():
-    if len(sys.argv) < 3 and not (len(sys.argv) == 2 and (sys.argv[1] in ["--dummy_or", "--dummy_and", "--dummy_xor", "--dummy_nand", "--dummy_nxor"])):
-        print "python NeuralNetworkClassifier.py [training dirs] [testing dir]"
+    dummy_runs = ["--dummy_or", "--dummy_and", "--dummy_xor", 
+                  "--dummy_nand", "--dummy_nxor"]
+    if len(sys.argv) < 2:
+        print "python NeuralNetworkClassifier.py [training dir]"
         print "-----------OR----------"
         print "python NeuralNetworkClassifier.py --dummy_func"
         exit()
     
-    if sys.argv[1] in ["--dummy_or", "--dummy_and", "--dummy_xor", "--dummy_nand", "--dummy_nxor"]:
+    if sys.argv[1] in dummy_runs:
         if sys.argv[1] == "--dummy_xor":
             examples = [((1, 0, 0), 0),
                         ((1, 0, 1), 1),
@@ -358,11 +363,11 @@ def main():
 
     else:
 
-        training_dir = sys.argv[1]
-        testing_dir = sys.argv[2]        
-        examples = create_examples(training_dir)
+        training_file = sys.argv[1]
+        # examples = create_examples(training_dir)
+        examples = create_examples(training_file)
 
-        network = NeuralNetwork([10, 10, 8], examples)
+        network = NeuralNetwork([5, 5], examples)
         network.train()        
         # acc = network.test_on(testing_dir)
         acc = network.test_on_self()
