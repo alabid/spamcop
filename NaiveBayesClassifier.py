@@ -122,11 +122,11 @@ class NaiveBayesClassifier:
         for file_name in glob.glob("/".join([fname, "*.txt"])):
             is_spam = 0 if file_name.find("spmsg") == -1 else 1
             all_lines = self.get_all_lines(file_name)            
-
-            for line in all_lines:
-                if self.classify(line) == is_spam:
-                    right += 1
-                total += 1
+            
+            all_text = "\n".join(all_lines)
+            if self.classify(all_text) == is_spam:
+                right += 1
+            total += 1
         print "Testing model on the following directories: "
         for dirname in glob.glob(fname):
             print dirname

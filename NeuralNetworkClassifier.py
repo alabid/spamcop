@@ -124,8 +124,8 @@ class NeuralNetwork:
         delta = [[None] * len(self.network[l]) for l in range(len(self.network))]
         
         weight_change = 1
-                    
-        while math.fabs(weight_change) > 0:
+        times = 0           
+        while math.fabs(weight_change) > 0 and times < 100:
             weight_change = 0
             for example in self.examples:
                 input_vec = example[0]            
@@ -160,15 +160,24 @@ class NeuralNetwork:
                         for k in range(len(self.network[l+1])):
                             node = self.network[l][j]
                             delta[l][j] += node.weights[k] * delta[l+1][k]
+
                 for i in range(len(self.network)-1):
                     for j in range(len(self.network[i])):
                         node = self.network[i][j]
                         for k in range(len(node.weights)):
-                            weight_change += math.fabs(alpha * a[i][k] * delta[i][j])
-                            node.weights[k] += alpha * a[i][k] * delta[i][j] 
+                            weight_change += math.fabs(alpha * a[i][j] * delta[i+1][k])
+                            node.weights[k] += alpha * a[i][j] * delta[i+1][k] 
 
-            print "a\n", a, "weights:\n", self.network[0][4].weights
+            # print "a\n", a, "weights:\n", self.network[0][4].weights
             print weight_change, "Weight change"
+            times += 1
+            
+    def allnodes(self, network):
+        nodes = []
+        for layer in network:
+            for node in layer:
+                nodes.append(node)
+        return nodes
 
     def get_avg_word_length(self, all_lines):
         num_words = 0.0
@@ -232,13 +241,50 @@ class NeuralNetwork:
     def num_space_chars(self, all_lines):
         num_spaces = 0.0
         for line in all_lines:
-            space_list = re.findall("[\t, \s, \n]", line)
+            space_list = re.findall("\s+", line)
             num_spaces += len(space_list)
         return num_spaces
-            
 
-    
-    
+    def predict(self, features, node, parent_index):
+        if node.is_input == True:
+            node_index = self.network[0].index(node)
+            return node.weights[node_index] * features[node_index]
+        elif node.is_output == True:
+            summation = 0
+            for neuron in node.children:
+                node_index = (parent_index -1, self.network[parent_index -1].index(node)) 
+                summation += self.predict(features, neuron, node_index)
+            if summation >= 0:
+                return 1
+            else:
+                return 0
+
+        else:
+            summation = 0
+            for neuron in node.children:
+                node_index = (parent_index -1, self.network[parent_index -1].index(node))
+                summation += self.predict(features, neuron, node_index)
+            return summation * node.weights[parent_index[1]]
+
+    def classify(self, text):
+        features = self.get_features(text)
+        output = self.predict(features, self.network[-1][0], None)
+
+    def test_classifier(self, fname):
+        total = 0
+        right = 0
+        for file_name in glob.glob("/".join([fname, "*.txt"])):
+            is_spam = 0 if file_name.find("spmsg") == -1 else 1
+            all_lines = self.get_all_lines(file_name)            
+            
+            all_text = "\n".join(all_lines)
+            if self.classify(all_text) == is_spam:
+                right += 1
+            total += 1
+        print "Testing model on the following directories: "
+        for dirname in glob.glob(fname):
+            print dirname
+        return float(right)/total    
     
 def main():
     if len(sys.argv) < 3:
@@ -249,10 +295,9 @@ def main():
     testing_dir = sys.argv[2]
     
     network = NeuralNetwork([2, 2], training_dir)
-'''    acc = network.test_classifier()
+    acc = network.test_classifier(testing_dir)
     print "Accuracy on test set: %.2f %%" % (acc * 100)
     
-    network = createNeuralNetwork(3, 3)
-    print network
-'''
-main()
+
+if __name__ == "__main__":
+    main()
