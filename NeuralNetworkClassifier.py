@@ -112,7 +112,7 @@ class NeuralNetwork:
 
 
     def train(self):
-        alpha = 0.5
+        alpha = 0.3
         delta = [[None] * len(self.network[l]) for l in range(len(self.network))]
         
         # keep track of difference in weights
@@ -296,17 +296,28 @@ def num_space_chars(all_lines):
 
     
 def main():
-    if len(sys.argv) < 3 and not (len(sys.argv) == 2 and sys.argv[1] == "--dummy"):
+    if len(sys.argv) < 3 and not (len(sys.argv) == 2 and (sys.argv[1] in ["--dummy_or", "--dummy_and", "--dummy_exor"])):
         print "python NeuralNetworkClassifier.py [training dirs] [testing dir]"
         print "-----------OR----------"
-        print "python NeuralNetworkClassifier.py --dummy"
+        print "python NeuralNetworkClassifier.py --dummy_func"
         exit()
     
-    if sys.argv[1] == "--dummy":
+    if sys.argv[1] == "--dummy_exor":
         examples = [((1, 0, 0), 0),
                     ((1, 0, 1), 1),
                     ((1, 1, 0), 1),
                     ((1, 1, 1), 0)]
+    if sys.argv[1] == "--dummy_and":
+        examples = [((1, 0, 0), 0),
+                    ((1, 0, 1), 0),
+                    ((1, 1, 0), 0),
+                    ((1, 1, 1), 1)]
+        
+    if sys.argv[1] == "--dummy_or":
+        examples = [((1, 0, 0), 0),
+                    ((1, 0, 1), 1),
+                    ((1, 1, 0), 1),
+                    ((1, 1, 1), 1)]
 
         network = NeuralNetwork([2,2], examples)
         network.train()
