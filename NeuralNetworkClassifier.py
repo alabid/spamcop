@@ -195,7 +195,6 @@ class NeuralNetwork:
         total = len(self.examples)
         right = 0.0
         for example in self.examples:
-            print example
             answer = self.predict(example[0])
             round_answer = 1 if answer >= 0.5 else 0
             print "answer=", answer, ";target=", example[1]
