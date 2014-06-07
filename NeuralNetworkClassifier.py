@@ -255,9 +255,9 @@ class NeuralNetwork:
                 node_index = (parent_index -1, self.network[parent_index -1].index(node)) 
                 summation += self.predict(features, neuron, node_index)
             if summation >= 0:
-                return 1
-            else:
                 return 0
+            else:
+                return 1
 
         else:
             summation = 0
@@ -269,6 +269,7 @@ class NeuralNetwork:
     def classify(self, text):
         features = self.get_features(text)
         output = self.predict(features, self.network[-1][0], None)
+        return output
 
     def test_classifier(self, fname):
         total = 0
@@ -278,6 +279,7 @@ class NeuralNetwork:
             all_lines = self.get_all_lines(file_name)            
             
             all_text = "\n".join(all_lines)
+            print total, right
             if self.classify(all_text) == is_spam:
                 right += 1
             total += 1
