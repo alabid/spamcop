@@ -4,7 +4,9 @@ import nltk
 import sys
 import glob
 import math
+import cPickle as pickle
 import random
+import os
 
 random.seed(0)
 
@@ -101,7 +103,6 @@ class NeuralNetwork:
         for j in range(len(input_vec)):
             a[0][j] = input_vec[j]
                 
-
         # hidden and output nodes
         for l in range(1, len(self.dimensions)): 
             prev_layer = self.network[l-1]
@@ -141,6 +142,47 @@ class NeuralNetwork:
                     weight_change += math.fabs(wc)
 
         return weight_change
+
+    def get_model_file_name(self, training_file):
+        ret = training_file
+        for num in self.dimensions:
+            ret += "-" + str(num)
+        ret += ".dat"
+        return ret
+
+    # Return True
+    # if a model should exist for this Neural Network
+    def model_exists(self, training_file):
+        file_name = self.get_model_file_name(training_file)
+        return os.path.exists(file_name)        
+
+    def store_model(self, training_file):
+        file_name = self.get_model_file_name(training_file)
+        if os.path.exists(file_name):
+            os.remove(file_name)
+        
+        # store all the weights for each node in the network
+        network_weights = []
+        for layer in self.network:
+            layer_weights = []
+            for node in layer:
+                layer_weights.append(node.weights)
+            network_weights.append(layer_weights)
+
+        pickle.dump(network_weights, 
+                    open(file_name, "wb")
+        )
+        
+        
+    def restore_model(self, training_file):
+        file_name = self.get_model_file_name(training_file)
+        network_weights = pickle.load(
+            open(file_name, "rb")
+        )
+        for i in range(len(self.network)):
+            for j in range(len(self.network[i])):
+                node = self.network[i][j]
+                node.weights = network_weights[i][j]
 
     def train(self):                
         # keep track of difference in weights
@@ -356,9 +398,9 @@ def main():
                         ((1, 1, 1), 1)]  
         
 
-        network = NeuralNetwork([5, 5, 2, 7], examples)
-        network.train()
-        acc = network.test_on_self()
+        net = NeuralNetwork([5, 5, 2, 7], examples)
+        net.train()
+        acc = net.test_on_self()
 
     else:
 
@@ -366,10 +408,13 @@ def main():
         # examples = create_examples(training_dir)
         examples = create_examples(training_file)
 
-        network = NeuralNetwork([5, 5], examples)
-        network.train()        
-        # acc = network.test_on(testing_dir)
-        acc = network.test_on_self()
+        net = NeuralNetwork([5, 5], examples)
+        if not net.model_exists(training_file):
+            net.train()
+            net.store_model(training_file)
+        else:
+            net.restore_model(training_file)
+        acc = net.test_on_self()
 
     print "Accuracy on test set: %.2f %%" % (acc * 100)
     
