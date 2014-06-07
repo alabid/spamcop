@@ -6,6 +6,8 @@ import glob
 import math
 import random
 
+random.seed(0)
+
 '''
 neuron class: contains weights, descendents (children), parents
 (what it descended from), and whether or not it is an output neuron.
@@ -77,8 +79,11 @@ class NeuralNetwork:
                     neuron.set_children(network[i+1])
                     # initialize weights to some random number
                     # between -0.5 and 0.5
-                    random_num = random.random() - 0.5                    
-                    neuron.set_weights([random_num] * len(network[i+1]))
+                    weights = []
+                    for j in range(len(network[i+1])):
+                        random_num = random.random() - 0.5  
+                        weights.append(random_num)
+                    neuron.set_weights(weights)
     
         return network
                 
@@ -110,11 +115,34 @@ class NeuralNetwork:
         
         return a
 
-
-    def train(self):
+    def back_propagate(self, a, res):
         alpha = 0.3
         delta = [[None] * len(self.network[l]) for l in range(len(self.network))]
+
+        weight_change = 0
+        output_node = self.network[-1][0]
+        error = res - a[-1][0]
+        delta[-1][0] = error * self.dsigmoid(a[-1][0])
         
+        for l in range(len(self.network)-2, -1, -1):
+            for j in range(len(self.network[l])):
+                error = 0
+                for k in range(len(self.network[l+1])):
+                    node = self.network[l][j]
+                    error += node.weights[k] * delta[l+1][k]
+                delta[l][j] = self.dsigmoid(a[l][j]) * error     
+
+        for l in range(len(self.network)-1):
+            for j in range(len(self.network[l])):
+                node = self.network[l][j]
+                for k in range(len(node.weights)):                      
+                    wc = alpha * a[l][j] * delta[l+1][k]
+                    node.weights[k] += wc
+                    weight_change += math.fabs(wc)
+
+        return weight_change
+
+    def train(self):                
         # keep track of difference in weights
         weight_change = 1
         
@@ -122,7 +150,6 @@ class NeuralNetwork:
         times = 0           
         MAX_ITER = 1000
         while math.fabs(weight_change) > 0 and times < MAX_ITER:
-            weight_change = 0
             for example in self.examples:
                 input_vec = example[0]            
                 res = example[1]
@@ -131,36 +158,20 @@ class NeuralNetwork:
                 a = self.forward_pass(input_vec)
                 
                 # propagate backwards...
-                output_node = self.network[-1][0]
-                error = res - a[-1][0]
-                delta[-1][0] = error * self.dsigmoid(a[-1][0])
+                weight_change = self.back_propagate(a, res)                
 
-                for l in range(len(self.network)-2, -1, -1):
-                    for j in range(len(self.network[l])):
-                        error = 0
-                        for k in range(len(self.network[l+1])):
-                            node = self.network[l][j]
-                            error += node.weights[k] * delta[l+1][k]
-                        delta[l][j] = self.dsigmoid(a[l][j]) * error     
-
-                for l in range(len(self.network)-1):
-                    for j in range(len(self.network[l])):
-                        node = self.network[l][j]
-                        for k in range(len(node.weights)):                      
-                            wc = alpha * a[l][j] * delta[l+1][k]
-                            node.weights[k] += wc
-                            weight_change += math.fabs(wc)
-
-            times += 1
             if times % (MAX_ITER/20) == 0:
                 print "Weight Change -->", weight_change
+            times += 1
                             
     def predict(self, features):
+        print
+        print features
         forwards = self.forward_pass(features)
         return forwards[-1][0] 
 
-    def classify(self, text):
-        features = get_features(text)
+    def classify(self, all_lines):
+        features = get_features(all_lines)
         output = self.predict(features)
         return output
 
@@ -171,8 +182,10 @@ class NeuralNetwork:
             is_spam = 0 if file_name.find("spmsg") == -1 else 1
             all_lines = get_all_lines(file_name)            
             
-            all_text = "\n".join(all_lines)
-            if self.classify(all_text) == is_spam:
+            answer = self.classify(all_lines)        
+            round_answer = 1 if answer >= 0.5 else 0
+            print "answer=", answer, ";target=", is_spam
+            if round_answer == is_spam:
                 right += 1
             total += 1
         print "Testing model on the following directories: "
@@ -184,6 +197,7 @@ class NeuralNetwork:
         total = len(self.examples)
         right = 0.0
         for example in self.examples:
+            print example
             answer = self.predict(example[0])
             round_answer = 1 if answer >= 0.5 else 0
             print "answer=", answer, ";target=", example[1]
@@ -213,22 +227,36 @@ def get_all_lines(file_name):
     return all_lines
     
     
-def get_features(all_lines):
-    func_features = [get_avg_word_length, 
+def get_features(all_lines):        
+    func_features = [get_avg_word_length,
                      num_spec_chars,
                      num_urls,
-                     diversity_of_chars,
                      num_nums,
                      num_dollars,
                      num_email_addrs,
-                     num_space_chars]
+                     diversity_of_chars]
+
+    for word in ["free", "money", "credit", "buy", "sell",
+                 "sex", "purchase", "job", "call", "business",
+                 "save", "cash", "cost", "quick", "easy"]:
+        func_features.append(word_count_generate(word, all_lines))
+
     # for a_0
     features = [1]
     for func in func_features:
         features.append(func(all_lines))
         
     return tuple(features)        
-        
+
+def word_count_generate(word, all_lines):
+    def word_count(all_lines):        
+        num_word = 0.0
+        for line in all_lines:
+            if word in line:
+                num_word += 1
+        return num_word
+    return word_count
+
 def get_avg_word_length(all_lines):
     num_words = 0.0
     length_sum = 0.0
@@ -258,13 +286,11 @@ def num_urls(all_lines):
                     
 def diversity_of_chars(all_lines):
     chars = set()
-    num_chars = 0.0
     for line in all_lines:
         for word in nltk.word_tokenize(line):
             for char in word:
                 chars.add(ord(char))
-                num_chars +=1
-    return len(chars)/num_chars
+    return len(chars)
     
 def num_nums(all_lines):
     num_nums = 0.0
@@ -287,39 +313,46 @@ def num_email_addrs(all_lines):
         num_emails += len(email_list)
     return num_emails
 
-def num_space_chars(all_lines):
-    num_spaces = 0.0
-    for line in all_lines:
-        space_list = re.findall("\s+", line)
-        num_spaces += len(space_list)
-    return num_spaces
 
     
 def main():
-    if len(sys.argv) < 3 and not (len(sys.argv) == 2 and (sys.argv[1] in ["--dummy_or", "--dummy_and", "--dummy_exor"])):
+    if len(sys.argv) < 3 and not (len(sys.argv) == 2 and (sys.argv[1] in ["--dummy_or", "--dummy_and", "--dummy_xor", "--dummy_nand", "--dummy_nxor"])):
         print "python NeuralNetworkClassifier.py [training dirs] [testing dir]"
         print "-----------OR----------"
         print "python NeuralNetworkClassifier.py --dummy_func"
         exit()
     
-    if sys.argv[1] == "--dummy_exor":
-        examples = [((1, 0, 0), 0),
-                    ((1, 0, 1), 1),
-                    ((1, 1, 0), 1),
-                    ((1, 1, 1), 0)]
-    if sys.argv[1] == "--dummy_and":
-        examples = [((1, 0, 0), 0),
-                    ((1, 0, 1), 0),
-                    ((1, 1, 0), 0),
-                    ((1, 1, 1), 1)]
-        
-    if sys.argv[1] == "--dummy_or":
-        examples = [((1, 0, 0), 0),
-                    ((1, 0, 1), 1),
-                    ((1, 1, 0), 1),
-                    ((1, 1, 1), 1)]
+    if sys.argv[1] in ["--dummy_or", "--dummy_and", "--dummy_xor", "--dummy_nand", "--dummy_nxor"]:
+        if sys.argv[1] == "--dummy_xor":
+            examples = [((1, 0, 0), 0),
+                        ((1, 0, 1), 1),
+                        ((1, 1, 0), 1),
+                        ((1, 1, 1), 0)]
+        if sys.argv[1] == "--dummy_and":
+            examples = [((1, 0, 0), 0),
+                        ((1, 0, 1), 0),
+                        ((1, 1, 0), 0),
+                        ((1, 1, 1), 1)]        
+        if sys.argv[1] == "--dummy_or":
+            examples = [((1, 0, 0), 0),
+                        ((1, 0, 1), 1),
+                        ((1, 1, 0), 1),
+                        ((1, 1, 1), 1)]
 
-        network = NeuralNetwork([2,2], examples)
+        if sys.argv[1] == "--dummy_nand":
+            examples = [((1, 0, 0), 1),
+                        ((1, 0, 1), 1),
+                        ((1, 1, 0), 1),
+                        ((1, 1, 1), 0)]  
+
+        if sys.argv[1] == "--dummy_nxor":
+            examples = [((1, 0, 0), 1),
+                        ((1, 0, 1), 0),
+                        ((1, 1, 0), 0),
+                        ((1, 1, 1), 1)]  
+        
+
+        network = NeuralNetwork([5, 5, 2, 7], examples)
         network.train()
         acc = network.test_on_self()
 
@@ -329,9 +362,10 @@ def main():
         testing_dir = sys.argv[2]        
         examples = create_examples(training_dir)
 
-        network = NeuralNetwork([2, 2], examples)
+        network = NeuralNetwork([10, 10, 8], examples)
         network.train()        
-        acc = network.test_on(testing_dir)
+        # acc = network.test_on(testing_dir)
+        acc = network.test_on_self()
 
     print "Accuracy on test set: %.2f %%" % (acc * 100)
     
