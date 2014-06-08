@@ -1,6 +1,13 @@
 '''
 Daniel Alabi and Will Schifeling
-Inspired by sentimentstwitter on github.com/alabid
+CS 321
+
+NaiveBayesClassifier.py -->
+Implementation of a Naive Bayes Classifier
+
+Example Run:
+python NaiveBayesClassifier.py ./lemm_stop 8
+python NaiveBayesClassifier.py ./lemm_stop 2
 '''
 import sys
 import nltk
@@ -15,14 +22,19 @@ class NaiveBayesClassifier:
     '''
     rawdname -> name of directory containing raw training data
     force == True iff user wants to overwrite classifier data
+    test_part -> number for part to use for testing
     '''
-    def __init__(self, dname, *args, **kargs):
+    def __init__(self, dname, test_part, *args, **kargs):
         self.rawdname = dname
-
+        self.test_part = test_part
         self.force = kargs.get("force", False)
 
+        self.all_dirs = set(glob.glob(os.path.join(self.rawdname, "part*")))
+        self.test_dirs = set(glob.glob(os.path.join(self.rawdname, "part%s" % (self.test_part))))
+        self.train_dirs = self.all_dirs - self.test_dirs
+
         # name of (pickled) file containing model
-        self.modelfname = "model.dat"
+        self.modelfname = "naivebayes_model.dat"
         self.weight = kargs.get("weight", 0.00005)
 
         # to avoid classifying too many 'documents' as
@@ -38,8 +50,11 @@ class NaiveBayesClassifier:
         # y -> number of times feature appears in spam class
         self.feat_mess_counts = {}
 
-    def set_thresholds(self, neg=1.0, pos=1.0):
-        self.thresholds = [neg, pos]
+    def set_thresholds(self, not_spam=1.0, spam=1.0):
+        '''
+        Thresholds for classifying emails as spam and not spam
+        '''
+        self.thresholds = [not_spam, spam]
 
     def prob_message_class(self, text, c):
         '''
@@ -101,8 +116,6 @@ class NaiveBayesClassifier:
     def get_features(self, item):
         '''
         Each feature has weight 1.
-        That is, even if the word 'obama' appears > 10 times
-        in a message, it is counted only once in that particular tweet
         '''
         flist = []
         return nltk.word_tokenize(item)
@@ -116,23 +129,32 @@ class NaiveBayesClassifier:
             self.inc_fc(f, c)
         self.inc_c(c)
 
-    def test_classifier(self, fname):
+    def test_classifier(self):
+        '''
+        Tests the classifier on the test directory
+        '''
         total = 0
         right = 0
-        for file_name in glob.glob("/".join([fname, "*.txt"])):
-            is_spam = 0 if file_name.find("spmsg") == -1 else 1
-            all_lines = self.get_all_lines(file_name)            
+        
+        for dir_name in self.test_dirs:
+            for file_name in glob.glob(os.path.join(dir_name, "*.txt")):
+                is_spam = 0 if file_name.find("spmsg") == -1 else 1
+                all_lines = self.get_all_lines(file_name)            
             
-            all_text = "\n".join(all_lines)
-            if self.classify(all_text) == is_spam:
-                right += 1
-            total += 1
+                all_text = "\n".join(all_lines)
+                if self.classify(all_text) == is_spam:
+                    right += 1
+                total += 1
+
         print "Testing model on the following directories: "
-        for dirname in glob.glob(fname):
+        for dirname in self.test_dirs:
             print dirname
         return float(right)/total
 
     def get_all_lines(self, file_name):
+        '''
+        Return all lines in a file
+        '''
         f = open(file_name)
         # read subject line without 'Subject' line
         subject_line = f.readline()[8:]
@@ -155,21 +177,23 @@ class NaiveBayesClassifier:
             self.mess_counts, self.feat_mess_counts = pickle.load(
                 open(self.modelfname, "rb")
             )
-            return
+            return        
         
-        for file_name in glob.glob("/".join([self.rawdname, "*.txt"])):   
-            is_spam = 0 if file_name.find("spmsg") == -1 else 1
-            all_lines = self.get_all_lines(file_name)            
+        for dir_name in self.train_dirs:
+            for file_name in glob.glob(os.path.join(dir_name, "*.txt")):
+                is_spam = 0 if file_name.find("spmsg") == -1 else 1
+                all_lines = self.get_all_lines(file_name)            
 
-            for line in all_lines:
-                self.train(is_spam, line)
+                for line in all_lines:
+                    self.train(is_spam, line)
 
         # store naive bayes classifier training data
         pickle.dump([self.mess_counts, self.feat_mess_counts],
                     open(self.modelfname, "wb")
         )
+
         print "Creating model based on the following directories: "
-        for dirname in glob.glob(self.rawdname):
+        for dirname in self.train_dirs:
             print dirname
         print "Model stored in '%s'" % self.modelfname
 
@@ -223,13 +247,18 @@ class NaiveBayesClassifier:
 
 def main():
     if len(sys.argv) < 3:
-        print "python [Classifier File Name] [training dirs] [testing dir]"
+        print "python NaiveBayesClassifier.py [training dir] [1-10]"
         exit()
-    naive = NaiveBayesClassifier(sys.argv[1])
-    naive.force = True
-    naive.train_classifier()
-    acc = naive.test_classifier(sys.argv[2])
-    print "Accuracy on test set: %.2f %%" % (acc * 100)
+
+    num = sys.argv[2]
+    if num not in [str(each) for each in range(1, 11)]:
+        print "Must supply a part number between 1 and 10"
+    else:
+        naive = NaiveBayesClassifier(sys.argv[1], num)
+        naive.force = True
+        naive.train_classifier()
+        acc = naive.test_classifier()
+        print "Accuracy on test set: %.2f %%" % (acc * 100)
 
 if __name__ == "__main__":
     main()
