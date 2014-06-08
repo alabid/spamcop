@@ -409,8 +409,8 @@ def main():
         if sys.argv[1] == "--dummy_add":
             examples = []
             for i in range(100):
-                x = random.randint(0,100)/200.0
-                y = random.randint(0,100)/200.0
+                x = random.randint(0,10)/20.0
+                y = random.randint(0,10)/20.0
                 z = x + y
                 examples.append(((1, x, y), z))
 
