@@ -215,35 +215,56 @@ class NeuralNetwork:
         output = self.predict(features)
         return output
 
-    def test_on(self, fname):
-        total = 0
-        right = 0
-        for file_name in glob.glob("/".join([fname, "*.txt"])):
-            is_spam = 0 if file_name.find("spmsg") == -1 else 1
-            all_lines = get_all_lines(file_name)            
-            
-            answer = self.classify(all_lines)        
-            round_answer = 1 if answer >= 0.5 else 0
-            if round_answer == is_spam:
-                right += 1
-            total += 1
-        print "Testing model on the following directories: "
-        for dirname in glob.glob(fname):
-            print dirname
-        return float(right)/total    
-
-    def test_on_self(self):        
-        total = len(self.examples)
+    def test_on(self, examples):
+        total = len(examples)
         right = 0.0
-        for example in self.examples:
+        for example in examples:
             answer = self.predict(example[0])
             round_answer = 1 if answer >= 0.5 else 0
             if round_answer == example[1]:
                 right += 1
         return right / total
 
+    def test_on_self(self):        
+        print "Testing on training set..."
+        return self.test_on(self.examples)
+
+    # separate the examples into
+    # training and testing set
+    # 90% -> training
+    # 10% -> testing
+    # by default
+    def random_sep(self, rat = .9):
+        print "Seperating examples into %.2f%%:%.2f%% (Training/Testing)" % \
+            (rat * 100, (1-rat)*100)
+        training = []
+        chosen_indices = set()
+        max_indices = int(rat * len(self.examples))
+
+        while len(chosen_indices) < max_indices:
+            sel_index = random.randint(0, len(self.examples)-1)
+            if sel_index not in chosen_indices:
+                chosen_indices.add(sel_index)
+                training.append(self.examples[sel_index])
+
+        testing = []
+        for example in self.examples:
+            if example not in training:
+                testing.append(example)
+
+        return training, testing
+
     def test_cross_validation(self):
-        return 0.7
+        print "\nTesting using cross-validation...\n"
+        accs = []
+        for i in range(5):
+            print "iteration %d" % (i + 1)
+            train_examples, test_examples = self.random_sep()
+            net = NeuralNetwork([10, 10], train_examples)
+            net.train()
+            acc = net.test_on(test_examples)
+            accs.append(acc)
+        return sum(accs) / float(len(accs))
 
 def normalize_features(example_list):
     max_list = [[0.0] * len(example_list[0][0]), 0.0]
