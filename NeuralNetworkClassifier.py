@@ -111,7 +111,8 @@ class NeuralNetwork:
             for j in range(len(curr_layer)):
                 hyp = 0
                 for i in range(len(prev_layer)):
-                    hyp += prev_layer[i].weights[j] * a[l-1][i]                    
+                    hyp += prev_layer[i].weights[j] * a[l-1][i]
+       
                 a[l][j] = self.sigmoid(hyp)
         return a
 
@@ -204,18 +205,9 @@ class NeuralNetwork:
             if times % (MAX_ITER/20) == 0:
                 print "Weight Change -->", weight_change
             times += 1
-        print "="*80        
-        for i in range(len(self.network)):
-            print "layer %d" % i
-            layer = self.network[i]
-            print [node.weights for node in layer]
-            print "-------------------------"
-                
-        print "="*80
                             
     def predict(self, features):
         forwards = self.forward_pass(features)
-        print forwards
         return forwards[-1][0] 
 
     def classify(self, all_lines):
@@ -232,7 +224,6 @@ class NeuralNetwork:
             
             answer = self.classify(all_lines)        
             round_answer = 1 if answer >= 0.5 else 0
-            print "answer=", answer, ";target=", is_spam
             if round_answer == is_spam:
                 right += 1
             total += 1
@@ -245,27 +236,42 @@ class NeuralNetwork:
         total = len(self.examples)
         right = 0.0
         for example in self.examples:
-            print example[0]
             answer = self.predict(example[0])
             round_answer = 1 if answer >= 0.5 else 0
-            print "answer=", answer, ";target=", example[1]
             if round_answer == example[1]:
                 right += 1
             
         return right / total
 
+def normalize_features(example_list):
+    max_list = [[0.0] * len(example_list[0][0]), 0.0]
+    for row in range(len(example_list)):
+        for col in range(len(example_list[row][0])):
+            cur = math.fabs(example_list[row][0][col])
+            if cur > max_list[0][col]:
+                max_list[0][col] = cur
+        cur = math.fabs(example_list[row][1])
+        if cur > max_list[1]:
+            max_list[1] = cur
+    
+    for row in range(len(example_list)):
+        for col in range(len(example_list[row][0])):
+            if max_list[0][col] != 0:
+                example_list[row][0][col] = example_list[row][0][col] / max_list[0][col]
+        example_list[row][1] =  example_list[row][1] / max_list[1]
+    
 def create_examples(training_file):
     example_list = []
     # for file_name in glob.glob("/".join([from_dir, "*.txt"])):
     with open(training_file) as f:
         for line in f:
             row = line.split(",")
-            is_spam = int(row[0])
-            features = tuple([1]+[float(each) for each in row[1:]])
-            # is_spam = 0 if file_name.find("spmsg") == -1 else 1
-            # all_lines = get_all_lines(file_name)  
-            # features = get_features(all_lines)
-            example_list.append((features, is_spam))
+            features = [1.0]+[float(each) for each in row[:-1]]
+            is_spam = int(row[-1])
+            example_list.append([features, is_spam])
+
+    normalize_features(example_list)
+
     return example_list
 
 def get_all_lines(file_name):
@@ -299,7 +305,7 @@ def get_features(all_lines):
     for func in func_features:
         features.append(func(all_lines))
         
-    return tuple(features)        
+    return features
 
 def word_count_generate(word, all_lines):
     def word_count(all_lines):        
@@ -412,21 +418,18 @@ def main():
                 x = random.randint(0,100)/200.0
                 y = random.randint(0,100)/200.0
                 z = x + y
-                examples.append(((1, x, y), z))
+                examples.append(((1, x, y), z))        
 
-        
-
-        net = NeuralNetwork([5, 5, 2, 7], examples)
+        net = NeuralNetwork([5, 10, 5], examples)
         net.train()
         acc = net.test_on_self()
 
     else:
 
         training_file = sys.argv[1]
-        # examples = create_examples(training_dir)
         examples = create_examples(training_file)
 
-        net = NeuralNetwork([1], examples)
+        net = NeuralNetwork([10, 10], examples)
         if not net.model_exists(training_file):
             net.train()
             net.store_model(training_file)

@@ -204,6 +204,7 @@ class NeuralNetwork:
             if times % (MAX_ITER/20) == 0:
                 print "Weight Change -->", weight_change
             times += 1
+        '''
         print "="*80        
         for i in range(len(self.network)):
             print "layer %d" % i
@@ -212,10 +213,10 @@ class NeuralNetwork:
             print "-------------------------"
                 
         print "="*80
+        '''
                             
     def predict(self, features):
         forwards = self.forward_pass(features)
-        print forwards
         return forwards[-1][0] 
 
     def classify(self, all_lines):
