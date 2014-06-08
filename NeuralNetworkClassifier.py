@@ -1,4 +1,18 @@
-# William Schifeling and Daniel Alabi
+'''
+Daniel Alabi and Will Schifeling 
+CS 321
+
+NeuralNetworkClassifier.py -->
+Implementation of a Neural Network Classifier
+
+Example Run:
+(without cross validation)
+python NeuralNetworkClassifier.py ./spambase/smallestspambase.data 
+-------------------OR-------------------
+(with cross validation -- do on really small files)
+python NeuralNetworkClassifier.py ./spambase/smallestspambase.data --cross
+'''
+
 import re
 import nltk
 import sys
@@ -8,30 +22,21 @@ import cPickle as pickle
 import random
 import os
 
+# seed the random number generator
 random.seed(0)
 
-'''
-neuron class: contains weights, descendents (children), parents
-(what it descended from), and whether or not it is an output neuron.
-'''
-class Neuron:
-
+class Node:
+    '''
+    Represents one node in a Neural Network
+    '''
     def __init__(self):
-        # weights going out from this Neuron
+        # weights going out from this node
         self.weights = []
-        self.children = []
-        self.parents = []
         self.is_output = False
         self.is_input = False
 
     def set_weights(self, weightList):
         self.weights = weightList
-
-    def set_children(self, children):
-        self.children = children
-
-    def set_parents(self, parents):
-        self.parents = parents
 
     def set_output(self, boolean):
         self.is_output = boolean
@@ -43,6 +48,16 @@ class Neuron:
     
 
 class NeuralNetwork:
+    '''
+    Represents a Multi-Layer Neural Network that uses the
+    back-propagation algorithm to train the Neural Netwok.
+    You can have as many hidden layers as you want.
+    ----------------------------------------------------------------
+    We add in an input layer with as many nodes as there are inputs.    
+    We add in an output layer with only one node for the output
+    classification.
+    ----------------------------------------------------------------
+    '''
     def __init__(self, dimensions, examples):
         self.examples = examples
 
@@ -56,29 +71,36 @@ class NeuralNetwork:
 
         # add output layer to dimensions
         self.dimensions += [1]
-        
+
+        # True if you want to see the weight changes. False otherwise
+        self.verbose = True
+                
     def create_network(self):
+        '''
+        Creates the network of nodes based on the dimensions
+        the user specifies.
+        '''
         network = []
         for number in self.dimensions:
             sub_network = []
             for i in range(number):
-                neuron = Neuron()
+                neuron = Node()
                 sub_network.append(neuron)
             network.append(sub_network)
                 
-        neuron = Neuron()
+        # create output node for the output layer
+        neuron = Node()
         neuron.set_output(True)
         network.append([neuron])
 
+        # set the input layer 
         for neuron in network[0]:
             neuron.set_input(True)
     
+        # connect the layers together by weights
         for i in range(len(network)):
             for neuron in network[i]:
-                if i > 0:
-                    neuron.set_parents(network[i-1])                    
                 if i < len(network)-1:
-                    neuron.set_children(network[i+1])
                     # initialize weights to some random number
                     # between -0.5 and 0.5
                     weights = []
@@ -90,12 +112,24 @@ class NeuralNetwork:
         return network
                 
     def sigmoid(self, x):
+        '''
+        sigmoid function -> Continuous Tan-Sigmoid Function
+        see 
+        http://en.wikibooks.org/wiki/Artificial_Neural_Networks/Activation_Functions
+        '''
         return math.tanh(x)
   
     def dsigmoid(self, y):
+        '''
+        derivative of sigmoid function on the output
+        '''
         return 1.0 - y**2
         
+    
     def forward_pass(self, input_vec):
+        '''
+        Perform a forward pass of the neural network using the 'input_vec'
+        '''
         ## set activations for input, hidden, and output nodes
 
         # input nodes
@@ -109,22 +143,34 @@ class NeuralNetwork:
             curr_layer = self.network[l]                
             
             for j in range(len(curr_layer)):
+                # compute the hypothesis for this layer
                 hyp = 0
                 for i in range(len(prev_layer)):
-                    hyp += prev_layer[i].weights[j] * a[l-1][i]
-       
+                    hyp += prev_layer[i].weights[j] * a[l-1][i]            
                 a[l][j] = self.sigmoid(hyp)
+                
         return a
 
     def back_propagate(self, a, res):
-        alpha = 0.3
+        '''
+        Compute the error on the output node and then back propagate this
+        error throughout the network.
+        We essentially used the book's back propagation algorithm.
+        '''
+        # learning rate
+        alpha = 0.3    
+        # delta -> store the errors 
         delta = [[None] * len(self.network[l]) for l in range(len(self.network))]
 
+        # keep track of the weight change
         weight_change = 0
+
         output_node = self.network[-1][0]
-        error = res - a[-1][0]
+        # error on output node
+        error = res - a[-1][0]        
         delta[-1][0] = error * self.dsigmoid(a[-1][0])
         
+        # from layer L-2 to layer 0, propagate the error
         for l in range(len(self.network)-2, -1, -1):
             for j in range(len(self.network[l])):
                 error = 0
@@ -133,6 +179,7 @@ class NeuralNetwork:
                     error += node.weights[k] * delta[l+1][k]
                 delta[l][j] = self.dsigmoid(a[l][j]) * error     
 
+        # update the weights based on the delta errors
         for l in range(len(self.network)-1):
             for j in range(len(self.network[l])):
                 node = self.network[l][j]
@@ -144,19 +191,27 @@ class NeuralNetwork:
         return weight_change
 
     def get_model_file_name(self, training_file):
+        '''
+        Return a file name to store the current model
+        '''
         ret = training_file
         for num in self.dimensions:
             ret += "-" + str(num)
         ret += ".dat"
         return ret
 
-    # Return True
-    # if a model should exist for this Neural Network
     def model_exists(self, training_file):
+        '''
+        Return True
+        if a model should exist for this Neural Network
+        '''
         file_name = self.get_model_file_name(training_file)
         return os.path.exists(file_name)        
 
     def store_model(self, training_file):
+        '''
+        Store this model  
+        '''
         file_name = self.get_model_file_name(training_file)
         if os.path.exists(file_name):
             os.remove(file_name)
@@ -175,6 +230,9 @@ class NeuralNetwork:
         
         
     def restore_model(self, training_file):
+        '''
+        Restore the model made for this file
+        '''
         file_name = self.get_model_file_name(training_file)
         network_weights = pickle.load(
             open(file_name, "rb")
@@ -185,7 +243,10 @@ class NeuralNetwork:
                 node.weights = network_weights[i][j]
 
     def train(self):                
-        # keep track of difference in weights
+        '''
+        Train this model using the examples
+        '''
+        # initialize weight change
         weight_change = 1
         
         # keep track of number of iterations 
@@ -202,50 +263,88 @@ class NeuralNetwork:
                 # propagate backwards...
                 weight_change = self.back_propagate(a, res)                
 
-            if times % (MAX_ITER/20) == 0:
+            if self.verbose and times % (MAX_ITER/20) == 0:
                 print "Weight Change -->", weight_change
             times += 1
                             
     def predict(self, features):
+        '''
+        Predict the result of the network based on the
+        features
+        '''
         forwards = self.forward_pass(features)
         return forwards[-1][0] 
 
-    def classify(self, all_lines):
-        features = get_features(all_lines)
-        output = self.predict(features)
-        return output
-
-    def test_on(self, fname):
-        total = 0
-        right = 0
-        for file_name in glob.glob("/".join([fname, "*.txt"])):
-            is_spam = 0 if file_name.find("spmsg") == -1 else 1
-            all_lines = get_all_lines(file_name)            
-            
-            answer = self.classify(all_lines)        
-            round_answer = 1 if answer >= 0.5 else 0
-            if round_answer == is_spam:
-                right += 1
-            total += 1
-        print "Testing model on the following directories: "
-        for dirname in glob.glob(fname):
-            print dirname
-        return float(right)/total    
-
-    def test_on_self(self):        
-        total = len(self.examples)
+    def test_on(self, examples):
+        '''
+        Test on the examples and return the accuracy
+        '''
+        total = len(examples)
         right = 0.0
-        for example in self.examples:
+        for example in examples:
             answer = self.predict(example[0])
             round_answer = 1 if answer >= 0.5 else 0
             if round_answer == example[1]:
-                right += 1
+                right += 1                
         return right / total
+        
+    def test_on_self(self):        
+        '''
+        Test on itself. A way to make sure our Neural Network 
+        is doing good.
+        '''
+        print "Testing on training set..."
+        return self.test_on(self.examples)
+
+    def random_sep(self, rat = .9):
+        '''
+        separate the examples into
+        training and testing set
+        90% -> training
+        10% -> testing
+        by default
+        '''
+        print "Seperating examples into %.2f%%:%.2f%% (Training/Testing)" % \
+            (rat * 100, (1-rat)*100)
+        training = []
+        chosen_indices = set()
+        max_indices = int(rat * len(self.examples))
+
+        while len(chosen_indices) < max_indices:
+            sel_index = random.randint(0, len(self.examples)-1)
+            if sel_index not in chosen_indices:
+                chosen_indices.add(sel_index)
+                training.append(self.examples[sel_index])
+
+        testing = []
+        for example in self.examples:
+            if example not in training:
+                testing.append(example)
+
+        return training, testing
 
     def test_cross_validation(self):
-        return 0.7
+        '''
+        Cross validation for 5 iterations
+        '''
+        print "\nTesting using cross-validation...\n"
+        accs = []
+
+        for i in range(5):
+            print "iteration %d" % (i + 1)
+            train_examples, test_examples = self.random_sep()
+            net = NeuralNetwork([10, 10], train_examples)
+            net.train()
+            acc = net.test_on(test_examples)
+            accs.append(acc)
+
+        return sum(accs) / float(len(accs))
+
 
 def normalize_features(example_list):
+    '''
+    Normalize all columns in example_list 
+    '''
     max_list = [[0.0] * len(example_list[0][0]), 0.0]
     for row in range(len(example_list)):
         for col in range(len(example_list[row][0])):
@@ -263,8 +362,10 @@ def normalize_features(example_list):
         example_list[row][1] =  example_list[row][1] / max_list[1]
     
 def create_examples(training_file):
+    '''
+    Create the examples based on the 'training_file'
+    '''
     example_list = []
-    # for file_name in glob.glob("/".join([from_dir, "*.txt"])):
     with open(training_file) as f:
         for line in f:
             row = line.split(",")
@@ -272,70 +373,37 @@ def create_examples(training_file):
             is_spam = int(row[-1])
             example_list.append([features, is_spam])
 
+    # normalize the features
     normalize_features(example_list)
-
+    
     return example_list
 
     
 def main():
-    dummy_runs = ["--dummy_or", "--dummy_and", "--dummy_xor", 
-                  "--dummy_nand", "--dummy_nxor"]
     if len(sys.argv) < 2:
-        print "python NeuralNetworkClassifier.py [training dir]"
-        print "-----------OR----------"
-        print "python NeuralNetworkClassifier.py --dummy_func"
+        print "python NeuralNetworkClassifier.py [training file]"
         exit()
-    
-    if sys.argv[1] in dummy_runs:
-        if sys.argv[1] == "--dummy_xor":
-            examples = [((1, 0, 0), 0),
-                        ((1, 0, 1), 1),
-                        ((1, 1, 0), 1),
-                        ((1, 1, 1), 0)]
-        if sys.argv[1] == "--dummy_and":
-            examples = [((1, 0, 0), 0),
-                        ((1, 0, 1), 0),
-                        ((1, 1, 0), 0),
-                        ((1, 1, 1), 1)]        
-        if sys.argv[1] == "--dummy_or":
-            examples = [((1, 0, 0), 0),
-                        ((1, 0, 1), 1),
-                        ((1, 1, 0), 1),
-                        ((1, 1, 1), 1)]
 
-        if sys.argv[1] == "--dummy_nand":
-            examples = [((1, 0, 0), 1),
-                        ((1, 0, 1), 1),
-                        ((1, 1, 0), 1),
-                        ((1, 1, 1), 0)]  
+    # training file
+    training_file = sys.argv[1]
+    # get examples based on the training file
+    examples = create_examples(training_file)
 
-        if sys.argv[1] == "--dummy_nxor":
-            examples = [((1, 0, 0), 1),
-                        ((1, 0, 1), 0),
-                        ((1, 1, 0), 0),
-                        ((1, 1, 1), 1)] 
-
-        net = NeuralNetwork([5, 10, 5], examples)
+    # create the network with 2 hidden layers, each with 10 nodes
+    net = NeuralNetwork([10, 10], examples)
+    if not net.model_exists(training_file):
         net.train()
-        acc = net.test_on_self()
-        print "Accuracy on testing on training data: %d%%" % (acc * 100)
-
+        net.store_model(training_file)
     else:
+        net.restore_model(training_file)
+    # test on self
+    acc = net.test_on_self()
+    print "Accuracy on training data: %d%%" % (acc * 100)
 
-        training_file = sys.argv[1]
-        examples = create_examples(training_file)
-
-        net = NeuralNetwork([10, 10], examples)
-        if not net.model_exists(training_file):
-            net.train()
-            net.store_model(training_file)
-        else:
-            net.restore_model(training_file)
-        acc = net.test_on_self()
-        print "Accuracy on testing on training data: %d%%" % (acc * 100)
-        if len(sys.argv) > 2 and sys.argv[2] == "--cross":
-            acc = net.test_cross_validation()
-            print "Accuracy using cross-validation: %d%%" % (acc * 100)
+    if len(sys.argv) >= 3 and sys.argv[2] == "--cross":
+        # cross-validation
+        acc = net.test_cross_validation()
+        print "Accuracy using cross-validation: %d%%" % (acc * 100)
     
 
 if __name__ == "__main__":
