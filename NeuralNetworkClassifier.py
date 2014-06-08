@@ -337,7 +337,6 @@ class NeuralNetwork:
             net.train()
             acc = net.test_on(test_examples)
             accs.append(acc)
-
         return sum(accs) / float(len(accs))
 
 

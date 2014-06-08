@@ -8,4 +8,4 @@ Spam Filter using two classifiers:
 Average Performance on Test Set
 -------------------------------
 1. Naive Bayes : 98.62%
-2. Neural Network (with cross-validation) :
+2. Neural Network (with cross-validation) : 86.3%
