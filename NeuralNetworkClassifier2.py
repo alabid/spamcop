@@ -204,16 +204,7 @@ class NeuralNetwork:
             if times % (MAX_ITER/20) == 0:
                 print "Weight Change -->", weight_change
             times += 1
-        '''
-        print "="*80        
-        for i in range(len(self.network)):
-            print "layer %d" % i
-            layer = self.network[i]
-            print [node.weights for node in layer]
-            print "-------------------------"
-                
-        print "="*80
-        '''
+    
                             
     def predict(self, features):
         forwards = self.forward_pass(features)
@@ -233,7 +224,7 @@ class NeuralNetwork:
             
             answer = self.classify(all_lines)        
             round_answer = 1 if answer >= 0.5 else 0
-            print "answer=", answer, ";target=", is_spam
+            print "answer=", answer, ";target=", is_spam, ";difference=", answer-is_spam
             if round_answer == is_spam:
                 right += 1
             total += 1
@@ -244,16 +235,15 @@ class NeuralNetwork:
 
     def test_on_self(self):        
         total = len(self.examples)
-        right = 0.0
+        error = 0.0
         for example in self.examples:
             print example[0]
             answer = self.predict(example[0])
             round_answer = 1 if answer >= 0.5 else 0
-            print "answer=", answer, ";target=", example[1]
-            if round_answer == example[1]:
-                right += 1
-            
-        return right / total
+            print "answer=", answer, ";target=", example[1], ";difference=", answer-example[1]
+            error += answer-example[1] 
+        print "Average error =", error/total    
+        return 0.0
 
 def create_examples(training_file):
     example_list = []
@@ -371,7 +361,8 @@ def num_email_addrs(all_lines):
     
 def main():
     dummy_runs = ["--dummy_or", "--dummy_and", "--dummy_xor", 
-                  "--dummy_nand", "--dummy_nxor", "--dummy_add"]
+                  "--dummy_nand", "--dummy_nxor", "--dummy_add", 
+                  "--dummy_subtract",  "--dummy_divide", "--dummy_multiply"]
     if len(sys.argv) < 2:
         print "python NeuralNetworkClassifier.py [training dir]"
         print "-----------OR----------"
@@ -410,10 +401,35 @@ def main():
         if sys.argv[1] == "--dummy_add":
             examples = []
             for i in range(100):
-                x = random.randint(0,10)/20.0
-                y = random.randint(0,10)/20.0
+                x = random.randint(0,100)/200.0
+                y = random.randint(0,100)/200.0
                 z = x + y
                 examples.append(((1, x, y), z))
+
+        if sys.argv[1] == "--dummy_subtract":
+            examples = []
+            for i in range(100):
+                x = random.randint(50,100)/200.0
+                y = random.randint(0,50)/200.0
+                z = x - y
+                examples.append(((1, x, y), z))
+
+        if sys.argv[1] == "--dummy_divide":
+            examples = []
+            for i in range(100):
+                x = random.randint(50,100)/200.0
+                y = random.randint(0,50)/200.0
+                z = y/x
+                examples.append(((1, x, y), z))
+
+        if sys.argv[1] == "--dummy_multiply":
+            examples = []
+            for i in range(100):
+                x = random.randint(0,100)/200.0
+                y = random.randint(0,100)/200.0
+                z = y * x
+                examples.append(((1, x, y), z))
+
 
         
 
@@ -435,7 +451,7 @@ def main():
             net.restore_model(training_file)
         acc = net.test_on_self()
 
-    print "Accuracy on test set: %.2f %%" % (acc * 100)
+   # print "Accuracy on test set: %.2f %%" % (acc * 100)
     
 
 if __name__ == "__main__":
