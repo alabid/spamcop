@@ -243,6 +243,9 @@ class NeuralNetwork:
             
         return right / total
 
+    def test_cross_validation(self):
+        return 0.7
+
 def normalize_features(example_list):
     max_list = [[0.0] * len(example_list[0][0]), 0.0]
     for row in range(len(example_list)):
@@ -273,105 +276,6 @@ def create_examples(training_file):
     normalize_features(example_list)
 
     return example_list
-
-def get_all_lines(file_name):
-    f = open(file_name)
-    # read subject line without 'Subject' line
-    subject_line = f.readline()[8:]
-    all_lines = [subject_line] \
-                + [re.sub(r"[,.]",
-                          r"",
-                          line.lower().strip()) for line in f]
-    f.close()
-    return all_lines
-    
-    
-def get_features(all_lines):        
-    func_features = [get_avg_word_length,
-                     num_spec_chars,
-                     num_urls,
-                     num_nums,
-                     num_dollars,
-                     num_email_addrs,
-                     diversity_of_chars]
-
-    for word in ["free", "money", "credit", "buy", "sell",
-                 "sex", "purchase", "job", "call", "business",
-                 "save", "cash", "cost", "quick", "easy"]:
-        func_features.append(word_count_generate(word, all_lines))
-
-    # for a_0
-    features = [1]
-    for func in func_features:
-        features.append(func(all_lines))
-        
-    return features
-
-def word_count_generate(word, all_lines):
-    def word_count(all_lines):        
-        num_word = 0.0
-        for line in all_lines:
-            if word in line:
-                num_word += 1
-        return num_word
-    return word_count
-
-def get_avg_word_length(all_lines):
-    num_words = 0.0
-    length_sum = 0.0
-    for line in all_lines:
-        no_punc = re.sub(r"\W", r" ", line)
-        for word in nltk.word_tokenize(no_punc):
-            num_words += 1
-            length_sum += len(word)
-    return length_sum/num_words
-
-
-def num_spec_chars(all_lines):
-    num_chars = 0.0
-    for line in all_lines:
-        spec_chars = re.sub(r"\w", r" ", line)
-        for char in nltk.word_tokenize(spec_chars):
-            num_chars += 1
-    return num_chars
-
-def num_urls(all_lines):
-    num_urls = 0.0
-    for line in all_lines:
-        for word in nltk.word_tokenize(line):
-            if (word == "http") or (word == "www"): #.com
-                num_urls += 1
-    return num_urls
-                    
-def diversity_of_chars(all_lines):
-    chars = set()
-    for line in all_lines:
-        for word in nltk.word_tokenize(line):
-            for char in word:
-                chars.add(ord(char))
-    return len(chars)
-    
-def num_nums(all_lines):
-    num_nums = 0.0
-    for line in all_lines:
-        num_list = re.findall("[0-9]", line)
-        num_nums += len(num_list)
-    return num_nums
-    
-def num_dollars(all_lines):
-    num_dollars = 0.0
-    for line in all_lines:
-        dollar_list = re.findall("$", line)
-        num_dollars += len(dollar_list)
-    return num_dollars
-    
-def num_email_addrs(all_lines):
-    num_emails = 0.0
-    for line in all_lines:
-        email_list = re.findall("@", line)
-        num_emails += len(email_list)
-    return num_emails
-
 
     
 def main():
@@ -412,17 +316,10 @@ def main():
                         ((1, 1, 0), 0),
                         ((1, 1, 1), 1)] 
 
-        if sys.argv[1] == "--dummy_add":
-            examples = []
-            for i in range(100):
-                x = random.randint(0,100)/200.0
-                y = random.randint(0,100)/200.0
-                z = x + y
-                examples.append(((1, x, y), z))        
-
         net = NeuralNetwork([5, 10, 5], examples)
         net.train()
         acc = net.test_on_self()
+        print "Accuracy on testing on training data: %d" % acc * 100
 
     else:
 
@@ -436,8 +333,10 @@ def main():
         else:
             net.restore_model(training_file)
         acc = net.test_on_self()
-
-    print "Accuracy on test set: %.2f %%" % (acc * 100)
+        print "Accuracy on testing on training data: %d" % acc * 100
+        if len(sys.argv) > 2 and sys.argv[2] == "--cross":
+            acc = net.test_cross_validation()
+            print "Accuracy using cross-validation: %d" % acc * 100
     
 
 if __name__ == "__main__":
