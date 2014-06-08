@@ -1,4 +1,8 @@
-spamcop
+SpamCop
 =======
 
-Spam filter based on Naive Bayes Classifier and a Neural Network Classifier
+Spam Filter using two classifiers:
+1. Naive Bayes -- `NaiveBayesClassifier.py`
+2. Multi-Layer Neural Network (with back propagation) -- `NeuralNetworkClassifier.py`
+
+
