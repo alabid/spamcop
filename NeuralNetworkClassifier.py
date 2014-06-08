@@ -240,7 +240,6 @@ class NeuralNetwork:
             round_answer = 1 if answer >= 0.5 else 0
             if round_answer == example[1]:
                 right += 1
-            
         return right / total
 
     def test_cross_validation(self):
@@ -280,7 +279,7 @@ def create_examples(training_file):
     
 def main():
     dummy_runs = ["--dummy_or", "--dummy_and", "--dummy_xor", 
-                  "--dummy_nand", "--dummy_nxor", "--dummy_add"]
+                  "--dummy_nand", "--dummy_nxor"]
     if len(sys.argv) < 2:
         print "python NeuralNetworkClassifier.py [training dir]"
         print "-----------OR----------"
@@ -319,7 +318,7 @@ def main():
         net = NeuralNetwork([5, 10, 5], examples)
         net.train()
         acc = net.test_on_self()
-        print "Accuracy on testing on training data: %d" % acc * 100
+        print "Accuracy on testing on training data: %d%%" % (acc * 100)
 
     else:
 
@@ -333,10 +332,10 @@ def main():
         else:
             net.restore_model(training_file)
         acc = net.test_on_self()
-        print "Accuracy on testing on training data: %d" % acc * 100
+        print "Accuracy on testing on training data: %d%%" % (acc * 100)
         if len(sys.argv) > 2 and sys.argv[2] == "--cross":
             acc = net.test_cross_validation()
-            print "Accuracy using cross-validation: %d" % acc * 100
+            print "Accuracy using cross-validation: %d%%" % (acc * 100)
     
 
 if __name__ == "__main__":
