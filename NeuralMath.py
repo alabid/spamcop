@@ -43,42 +43,43 @@ def main():
     new_examples=[]
     
     # create examples
-    if sys.argv[1] in dummy_runs:
-        if sys.argv[1] == "--dummy_xor":
+    dummy_func = sys.argv[1]
+    if dummy_func in dummy_runs:
+        if dummy_func == "--dummy_xor":
             examples = new_examples = [((1, 0, 0), 0),
                                        ((1, 0, 1), 1),
                                        ((1, 1, 0), 1),
                                        ((1, 1, 1), 0)]
-        if sys.argv[1] == "--dummy_and":
+        if dummy_func == "--dummy_and":
             examples = new_examples = [((1, 0, 0), 0),
                                        ((1, 0, 1), 0),
                                        ((1, 1, 0), 0),
                                        ((1, 1, 1), 1)]        
-        if sys.argv[1] == "--dummy_or":
+        if dummy_func == "--dummy_or":
             examples = new_examples = [((1, 0, 0), 0),
                                        ((1, 0, 1), 1),
                                        ((1, 1, 0), 1),
                                        ((1, 1, 1), 1)]
 
-        if sys.argv[1] == "--dummy_nand":
+        if dummy_func == "--dummy_nand":
             examples = new_examples = [((1, 0, 0), 1),
                                        ((1, 0, 1), 1),
                                        ((1, 1, 0), 1),
                                        ((1, 1, 1), 0)]  
 
-        if sys.argv[1] == "--dummy_nxor":
+        if dummy_func == "--dummy_nxor":
             examples = new_examples = [((1, 0, 0), 1),
                                        ((1, 0, 1), 0),
                                        ((1, 1, 0), 0),
                                        ((1, 1, 1), 1)] 
 	
-	if sys.argv[1] == "--dummy_nor":
+	if dummy_func == "--dummy_nor":
             examples = new_examples = [((1, 0, 0), 1),
                                        ((1, 0, 1), 0),
                                        ((1, 1, 0), 0),
                                        ((1, 1, 1), 0)]
 
-        if sys.argv[1] == "--dummy_add":
+        if dummy_func == "--dummy_add":
             for i in range(100):
                 (x, y) = make_x_y(0, 100, 0, 100)
                 (a, b) = make_x_y(0, 100, 0, 100)
@@ -88,7 +89,7 @@ def main():
                 new_examples.append(((1, x, y), z))
                 
 
-        if sys.argv[1] == "--dummy_subtract":
+        if dummy_func == "--dummy_subtract":
             for i in range(100):
                 (x, y) = make_x_y(100, 200, 0, 100)
                 (a, b) = make_x_y(100, 200, 0, 100)
@@ -97,7 +98,7 @@ def main():
                 examples.append(((1, x, y), z))
                 new_examples.append(((1, x, y), z))
                 
-        if sys.argv[1] == "--dummy_divide":
+        if dummy_func == "--dummy_divide":
             for i in range(100):
                 (x, y) = make_x_y(1, 100, 100, 200)
                 (a, b) = make_x_y(1, 100, 100, 200)
@@ -106,7 +107,7 @@ def main():
                 examples.append(((1, x, y), z))
                 new_examples.append(((1, x, y), z))
 
-        if sys.argv[1] == "--dummy_multiply":
+        if dummy_func == "--dummy_multiply":
             for i in range(100):
                 (x, y) = make_x_y(20, 200, 50, 200)
                 (a, b) = make_x_y(20, 200, 50, 200)
